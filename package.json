@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "forms": "node scripts/hwpx-parts.mjs",
     "check:hwpx": "node scripts/hwpx-check.mjs",
+    "check:open": "powershell -ExecutionPolicy Bypass -File scripts/hwpx-open.ps1",
     "shots": "node scripts/guide-shots.mjs"
   },
   "dependencies": {

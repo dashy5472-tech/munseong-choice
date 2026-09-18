@@ -189,6 +189,15 @@ for (const [label, blob, sectionCount] of cases) {
   }
   pass('XML 문법 이상 없음')
 
+  // 구역마다 쪽 모양(secPr)은 첫 문단에 딱 하나여야 한다.
+  // 둘이면 한글이 문서를 열지 못하고 '빈 문서' 를 띄운다 — 눈으로는 알 수 없고 XML 문법도 멀쩡하다.
+  for (let i = 0; i < sectionCount; i++) {
+    const xml = files[`Contents/section${i}.xml`]?.toString('utf-8') || ''
+    const cnt = (xml.match(/<hp:secPr[ >]/g) || []).length
+    if (cnt !== 1) fail(`section${i} 의 secPr 이 ${cnt}개입니다 (1개여야 합니다)`)
+  }
+  if (!failed) pass('구역마다 secPr 하나씩')
+
   const head = files['Contents/header.xml'].toString('utf-8')
   const secCnt = /<hh:head\b[^>]*secCnt="(\d+)"/.exec(head)?.[1]
   if (Number(secCnt) !== sectionCount) fail(`header.xml secCnt=${secCnt}, 실제 구역 ${sectionCount}개`)

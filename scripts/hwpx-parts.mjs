@@ -117,8 +117,11 @@ if (!secRun) throw new Error('secPr 을 찾지 못했습니다')
 
 function cut(from, to) {
   const body = paras.slice(from, to).map(([a, b]) => sec2.slice(a, b))
-  // 첫 문단 여는 태그 바로 뒤에 쪽 모양을 넣는다
-  body[0] = body[0].replace(/^(<hp:p\b[^>]*>)/, `$1${secRun[0]}`)
+  // 첫 문단 여는 태그 바로 뒤에 쪽 모양을 넣는다.
+  // 다만 잘라 낸 첫 문단이 원래 구역의 첫 문단이면 쪽 모양을 이미 가지고 있다.
+  // 그대로 또 넣으면 한 구역에 secPr 가 둘이 되어 한글이 문서를 아예 열지 못한다
+  // (파일을 열면 '빈 문서' 가 뜬다). 본교 서식2 가 바로 그 경우였다.
+  if (!body[0].includes('<hp:secPr')) body[0] = body[0].replace(/^(<hp:p\b[^>]*>)/, `$1${secRun[0]}`)
   return `${head}${body.join('')}</hs:sec>`
 }
 writeFileSync(`${OUT}/form2.xml`, tidy(cut(i2, i3)))

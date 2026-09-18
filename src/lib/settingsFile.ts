@@ -26,7 +26,7 @@ export function buildSettingsFile(master: Master): SettingsFile {
   const own = new Set(subjects.map((s) => s.id))
   const publishers = master.publishers.filter((p) => p.source !== 'catalog' && (own.has(p.subjectId) || master.subjects.some((s) => s.id === p.subjectId)))
   return {
-    _설명: '문성 선정서류 설정 파일. 첫 화면의 [설정 JSON] → [불러오기]로 다른 컴퓨터에 그대로 옮길 수 있습니다. 평가기준·의견 선택지·문서 설정과 직접 넣은 과목·출판사가 들어 있고, 작성한 평가표는 들어 있지 않습니다.',
+    _설명: '강릉문성고등학교 교과서 선정 서류 설정 파일. 첫 화면의 [설정 JSON] → [불러오기]로 다른 컴퓨터에 그대로 옮길 수 있습니다. 평가기준·의견 선택지·문서 설정과 직접 넣은 과목·출판사가 들어 있고, 작성한 평가표는 들어 있지 않습니다.',
     kind: SETTINGS_FILE_KIND,
     version: 1,
     exportedAt: new Date().toISOString(),
@@ -40,7 +40,7 @@ export function buildSettingsFile(master: Master): SettingsFile {
 
 export function settingsFileName(master: Master): string {
   const school = (master.settings.schoolName || '').trim() || '학교'
-  return `문성 선정서류 설정_${school}_${new Date().toISOString().slice(0, 10)}.json`
+  return `교과서 선정 설정_${school}_${new Date().toISOString().slice(0, 10)}.json`
 }
 
 /** 파일 내용을 검사한다. 문제가 있으면 이유를 던진다 */
@@ -53,7 +53,7 @@ export function parseSettingsFile(text: string): SettingsFile {
   }
   const f = raw as Partial<SettingsFile>
   if (!f || typeof f !== 'object' || f.kind !== SETTINGS_FILE_KIND) {
-    throw new Error('문성 선정서류 설정 파일이 아닙니다. 첫 화면의 [설정 JSON] → [저장]으로 만든 파일을 골라 주세요.')
+    throw new Error('교과서 선정 서류 설정 파일이 아닙니다. 첫 화면의 [설정 JSON] → [저장]으로 만든 파일을 골라 주세요.')
   }
   const criteria = Array.isArray(f.criteria) ? f.criteria.filter((c) => c && typeof c.area === 'string' && typeof c.text === 'string') : []
   if (!criteria.length) throw new Error('파일에 평가기준이 없습니다.')
