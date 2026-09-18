@@ -108,7 +108,7 @@ input[type='checkbox'] { accent-color: var(--primary); }
 }
 .topbar .brand { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 17px; font-weight: 800; letter-spacing: -0.02em; color: var(--title); white-space: nowrap; }
 .topbar .brand svg { width: 26px; height: 26px; }
-.topbar .brand .suffix { color: var(--muted); font-size: 12px; font-weight: 500; margin-left: 6px; }
+.topbar .brand .suffix { color: var(--title); opacity: 0.72; font-size: 15px; font-weight: 600; margin-left: 7px; }
 .topbar nav { display: flex; align-items: center; gap: 4px; }
 .topbar nav button { white-space: nowrap; border: none; background: none; height: 36px; padding: 0 12px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--text-2); cursor: pointer; }
 .topbar nav button:hover { background: rgba(0, 0, 0, 0.05); color: var(--text); }

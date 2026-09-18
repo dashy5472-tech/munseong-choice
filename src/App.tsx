@@ -21,7 +21,9 @@ function Shell() {
       <header className="topbar no-print">
         <div className="brand" onClick={() => go('')}>
           <BookIcon />
-          <span>문성 선정서류</span>
+          {/* 좁은 화면에서는 뒷말(suffix)이 접혀 '강릉문성고등학교' 만 남는다 */}
+          <span>강릉문성고등학교</span>
+          <span className="suffix">교과서 선정 서류 만들기</span>
         </div>
         <div id="topbar-slot" className="topbar-slot" />
         <div className="meta">
