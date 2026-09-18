@@ -148,8 +148,12 @@ export function looksLikeForm3(rows: TextRow[]): boolean {
 export function parseForm1(rows: TextRow[]): ParsedForm1 | null {
   const warnings: string[] = []
   const flatAll = rows.map((r) => r.flat).join(' ')
-  const subjectName = normalize((flatAll.match(/과목\s*[:：]\s*(.+?)과(?:\s|위원|$)/) || [])[1] || '')
-  const teacherName = normalize((flatAll.match(/위원\s*[:：]\s*(.+?)\(인\)/) || [])[1] || '')
+  // 띄어쓰기를 살린 줄에서 먼저 찾는다 — 공백을 모두 지운 글자에서 찾으면 '화법과 언어' 가 '화법과언어' 로 붙어 버린다.
+  // 원본 서식이 '과  목 :' 처럼 낱글자를 벌려 놓아 글자 사이 공백도 견디게 둔다.
+  const textAll = rows.map((r) => r.text).join(' ')
+  const pick = (loose: RegExp, tight: RegExp) => normalize((textAll.match(loose) || [])[1] || '') || normalize((flatAll.match(tight) || [])[1] || '')
+  const subjectName = pick(/과\s*목\s*[:：]\s*(.+?)\s*과\s+위/, /과목\s*[:：]\s*(.+?)과(?:\s|위원|$)/)
+  const teacherName = pick(/위\s*원\s*[:：]\s*(.+?)\s*\(\s*인\s*\)/, /위원\s*[:：]\s*(.+?)\(인\)/)
 
   const totalRowIdx = rows.findIndex((r) => r.flat.startsWith('합계'))
   if (totalRowIdx < 0) return null
@@ -180,13 +184,15 @@ export function parseForm1(rows: TextRow[]): ParsedForm1 | null {
 
   // 출판사명·가격: 첫 본문 줄 위쪽 머리글 줄들에서 각 열에 걸린 칸을 모은다.
   // 본교 서식1 은 머리글이 두 줄 — 위가 출판사명, 아래가 가격이다.
+  // 여러 줄에 걸친 머리글 칸(평가영역·항목별 점수)은 PDF 에서 저마다 다른 줄로 잡힌다.
+  // 그래서 '평가영역' 이 보인다고 멈추면 그 위에 있는 출판사명 줄을 놓친다.
+  // 표 위쪽(과목 줄·제목)에 닿을 때까지 올라가며 모은 뒤, 어느 줄이 이름이고 가격인지는 아래에서 가린다.
   const headerRows: TextRow[] = []
-  for (let i = firstBody - 1; i >= 0 && headerRows.length < 4; i--) {
+  for (let i = firstBody - 1; i >= 0 && headerRows.length < 8; i--) {
     const r = rows[i]
-    if (/과목\s*[:：]/.test(r.flat)) break
+    if (/과\s*목\s*[:：]/.test(r.text) || /과목[:：]/.test(r.flat)) break
+    if (r.flat.includes('선정평가표') || r.flat.includes('서식1')) break
     headerRows.unshift(r)
-    // 머리글 첫 줄(평가영역·출판사명·항목별 점수가 함께 있는 줄)까지 모으면 끝
-    if (r.flat.includes('출판사') || r.flat.includes('평가영역') || r.flat.includes('항목별')) break
   }
   /** 열에 걸린 칸만 남긴다 */
   const atColumns = (r: TextRow) => r.cells.filter((c) => pubAnchors.some((a) => near(c, a)) && c.text)
@@ -227,7 +233,19 @@ export function parseForm1(rows: TextRow[]): ParsedForm1 | null {
   // 평가기준 행: 배점·점수를 열에서 꺼내고 왼쪽 글자는 평가기준 문장으로 본다
   const criteria: ParsedCriterion[] = []
   const scores: number[][] = []
-  const textStarts: number[] = []
+
+  // 점수 왼쪽 칸은 평가영역 열과 평가기준 열 두 갈래다. 칸이 시작하는 x 로 가른다.
+  // 평가영역은 여러 줄에 걸친 칸이라 어떤 줄에는 기준 문장과 나란히 있고 어떤 줄에는 혼자 있다.
+  const leftOf = (row: TextRow) => row.cells.filter((c) => c.center < pointsAnchor - tol)
+  const leftXs = bodyIdx
+    .flatMap((i) => leftOf(rows[i]).map((c) => c.x))
+    .sort((a, b) => a - b)
+  const margin = Math.max(10, tol / 2)
+  const areaX = leftXs.length ? leftXs[0] : 0
+  /** 평가기준 열이 시작하는 x. 영역 칸이 본문 줄에 한 번도 없으면 영역 열과 같아진다 */
+  const textX = leftXs.find((x) => x > areaX + margin) ?? areaX
+  const isAreaCell = (c: Cell) => c.x < textX - margin
+
   for (const i of bodyIdx) {
     const row = rows[i]
     const nums = row.cells.filter((c) => isNumber(c.text))
@@ -238,15 +256,16 @@ export function parseForm1(rows: TextRow[]): ParsedForm1 | null {
         return hit ? Number(flatten(hit.text)) : 0
       }),
     )
-    const left = row.cells.filter((c) => c.center < pointsAnchor - tol)
-    if (left.length) textStarts.push(left[0].x)
-    criteria.push({ area: '', text: normalize(left.map((c) => c.text).join(' ')), points: pointCell ? Number(flatten(pointCell.text)) : 0 })
+    const left = leftOf(row)
+    criteria.push({
+      area: normalize(left.filter(isAreaCell).map((c) => c.text).join(' ')),
+      text: normalize(left.filter((c) => !isAreaCell(c)).map((c) => c.text).join(' ')),
+      points: pointCell ? Number(flatten(pointCell.text)) : 0,
+    })
   }
 
-  // 평가영역은 칸 병합 때문에 숫자 없는 별도 줄로 나온다.
-  // 본문 글자가 시작하는 x보다 뚜렷하게 왼쪽이면 영역명, 아니면 앞 기준 문장이 이어지는 줄로 본다.
-  const textStart = textStarts.length ? Math.min(...textStarts) : 0
-  const areaLimit = textStart - Math.max(10, tol / 2)
+  // 숫자 없는 줄은 여러 줄에 걸친 평가영역 칸이거나, 앞 기준 문장이 이어지는 줄이다.
+  // 한 줄에 둘이 같이 있기도 해서(영역 두 번째 줄 + 기준 문장 이어짐) 칸 단위로 나눠 붙인다.
   for (let i = 0; i < totalRowIdx; i++) {
     if (i < firstBody || bodyIdx.includes(i)) continue
     const row = rows[i]
@@ -263,8 +282,10 @@ export function parseForm1(rows: TextRow[]): ParsedForm1 | null {
     })
     const target = criteria[best]
     if (!target) continue
-    if (row.cells[0].x <= areaLimit) target.area = normalize(`${target.area} ${row.text}`)
-    else target.text = normalize(`${target.text} ${row.text}`)
+    const areaPart = row.cells.filter(isAreaCell).map((c) => c.text).join(' ')
+    const textPart = row.cells.filter((c) => !isAreaCell(c)).map((c) => c.text).join(' ')
+    if (areaPart) target.area = normalize(`${target.area} ${areaPart}`)
+    if (textPart) target.text = normalize(`${target.text} ${textPart}`)
   }
 
   // 검산: 항목 점수 합과 표의 합계가 다르면 알려 준다 (합계를 신뢰)

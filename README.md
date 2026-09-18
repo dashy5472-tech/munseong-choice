@@ -59,6 +59,11 @@ npm run build
 | --- | --- |
 | `npm run forms` | `assets/강릉문성고-원본서식.hwpx` 에서 서식 XML 조각을 다시 뽑아 `public/forms/` 에 넣습니다 |
 | `npm run check:hwpx` | 만들어지는 .hwpx 를 실제로 찍어 보고 파일 구성·XML 문법·표 값·칸 주소를 검사합니다 |
+| `npm run shots` | `npm run dev` 를 띄워 둔 채로 돌리면, 앱을 처음부터 끝까지 움직여 `사용법` 안내 그림 15장을 다시 찍습니다 |
+
+`npm run shots` 는 위원 평가표를 PDF 로 뽑아 그 파일을 총괄 화면에 도로 올리는 식으로 돌기 때문에, '위원 → PDF → 총괄표' 한 바퀴가 실제로 도는지도 함께 확인해 줍니다. 화면이나 서식을 고쳤으면 `npm run shots` 로 안내 그림을 다시 찍어 주세요. 브라우저는 이 컴퓨터에 깔린 크롬/엣지를 그대로 씁니다.
+
+PDF 판독이 어긋날 때는 `node scripts/form1-debug.mjs 평가표.pdf` 로 줄·칸이 어떻게 잡혔는지 볼 수 있습니다.
 
 ### 학교 양식이 바뀌면
 
