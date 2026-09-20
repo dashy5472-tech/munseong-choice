@@ -199,7 +199,7 @@ export function Compile({ go }: { go: (h: string) => void }) {
   const generate = async () => {
     const name = subject?.name || subjectName.trim()
     if (!name) return setMsg({ type: 'warn', text: '과목을 선택하거나 과목명을 입력하세요.' })
-    if (!members.length) return setMsg({ type: 'warn', text: '위원 평가표 PDF를 먼저 올리세요.' })
+    if (!members.length) return setMsg({ type: 'warn', text: '위원 평가표 파일(한글 또는 PDF)을 먼저 올리세요.' })
     if (!mergedPublishers.length) return setMsg({ type: 'warn', text: '출판사를 읽지 못했습니다. 위원이 [인쇄 / PDF 저장]으로 만든 파일인지 확인해 주세요.' })
     if (members.length < 3 && !confirm(`위원이 ${members.length}명입니다. 계획서는 3인 이상을 권장합니다(소규모 학교 2인 가능). 그대로 만들까요?`)) return
     if (existing && !confirm('이 과목의 총괄표가 이미 있습니다. 올린 점수표로 다시 만들까요? (취소하면 기존 총괄표를 엽니다)')) {
@@ -427,10 +427,10 @@ export function Compile({ go }: { go: (h: string) => void }) {
                 addFiles(e.dataTransfer.files)
               }}
             >
-              <p>위원들이 보낸 평가표 PDF를 끌어다 놓거나</p>
+              <p>위원들이 보낸 평가표 <b>한글(.hwpx)</b> 이나 <b>PDF</b> 를 끌어다 놓거나</p>
               <label className="btn primary sm">
                 + 추가하기
-                <input type="file" accept="application/pdf,.pdf" multiple style={{ display: 'none' }} onChange={(e) => addFiles(e.target.files)} />
+                <input type="file" accept=".hwpx,.hwp,application/pdf,.pdf" multiple style={{ display: 'none' }} onChange={(e) => addFiles(e.target.files)} />
               </label>
             </div>
 
@@ -495,7 +495,7 @@ export function Compile({ go }: { go: (h: string) => void }) {
             <div className="card">
               <h2>올린 평가표</h2>
               {members.length === 0 ? (
-                <p className="muted small">입력 칸의 [+ 추가하기]로 위원들이 보낸 평가표 PDF를 올리세요. 파일에서 위원명·출판사·점수를 읽어 옵니다.</p>
+                <p className="muted small">입력 칸의 [+ 추가하기]로 위원들이 보낸 평가표를 올리세요. 위원이 받은 <b>한글 파일(.hwpx)</b> 이 가장 정확합니다 — 표의 칸을 그대로 읽습니다. 인쇄해서 만든 PDF 도 됩니다.</p>
               ) : (
                 <div className="scroll-x">
                   <table className="data">

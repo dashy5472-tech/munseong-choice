@@ -1,6 +1,7 @@
 import type { Criterion, DocPublisher, Evaluation, RecommendItem, SummaryMember } from '../types'
 import { uid } from '../seed'
 import { buildRows, flatten, looksLikeForm1, looksLikeForm3, parseForm1, parseForm3, parseForm3Writer, type ParsedForm1, type TextItem, type TextRow } from './form1Parse'
+import { readForm1Hwpx } from './hwpxImport'
 
 export interface ImportProgress {
   file: string
@@ -267,8 +268,20 @@ export async function importMemberFiles(files: File[], onProgress: (p: ImportPro
   for (const file of files) {
     try {
       onProgress({ file: file.name, note: '읽는 중…' })
+      // 한글 파일은 표의 칸을 그대로 읽는다 — PDF 판독보다 정확하다
+      if (/\.hwpx?$/i.test(file.name)) {
+        const got = await readForm1Hwpx(file)
+        if (got.error || !got.parsed) {
+          errors.push({ file: file.name, reason: got.error || '한글 파일을 읽지 못했습니다.' })
+          continue
+        }
+        const evaluation = toEvaluation(got.parsed, [])
+        if (!evaluation.teacherName) evaluation.teacherName = file.name.replace(/\.hwpx?$/i, '')
+        members.push({ id: uid(), teacherName: evaluation.teacherName, source: 'hwpx', evaluation, warnings: got.parsed.warnings })
+        continue
+      }
       if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
-        errors.push({ file: file.name, reason: '평가표 PDF 파일만 올릴 수 있습니다.' })
+        errors.push({ file: file.name, reason: '평가표 PDF 나 한글(.hwpx) 파일만 올릴 수 있습니다.' })
         continue
       }
       const res = await readPdf(file, onProgress)

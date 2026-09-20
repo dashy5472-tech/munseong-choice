@@ -117,7 +117,7 @@ export interface SummaryRecommend {
   text: string
 }
 
-export type MemberSource = 'pdf' | 'pdf-ocr' | 'json' | 'manual'
+export type MemberSource = 'pdf' | 'pdf-ocr' | 'hwpx' | 'json' | 'manual'
 
 /** 총괄표의 위원 열 하나. PDF/JSON에서 읽은 원본 문서를 함께 보관한다 */
 export interface SummaryMember {
