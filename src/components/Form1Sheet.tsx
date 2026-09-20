@@ -63,9 +63,18 @@ export function Form1Sheet({ subjectName, teacherName, criteria, publishers, sco
         <thead>
           <tr>
             <th rowSpan={2}>평가영역</th>
-            <th rowSpan={2} className="diag" style={{ height: 52 }}>
-              <span className="a">출판사명 (가격)</span>
-              <span className="b">평가기준</span>
+            {/* 원본 서식의 대각선 칸을 그대로 옮긴 것.
+                오른쪽 위에 '출 판 사 명 / ----------- / (가격)', 왼쪽 아래에 '평 가 기 준',
+                대각선은 왼쪽 위에서 오른쪽 아래로 내려긋는다 */}
+            <th rowSpan={2} className="diag" style={{ height: 58 }}>
+              <span className="a">
+                출&nbsp;판&nbsp;사&nbsp;명
+                <br />
+                -----------
+                <br />
+                (가격)
+              </span>
+              <span className="b">평&nbsp;가&nbsp;기&nbsp;준</span>
             </th>
             <th rowSpan={2}>
               항목별

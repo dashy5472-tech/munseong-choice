@@ -432,10 +432,14 @@ td.num { text-align: center; }
 .form-sheet .footnote { margin-top: 10px; font-size: 10pt; }
 .form-sheet .form-head .sign { display: inline-flex; gap: 6px; align-items: baseline; }
 .form-sheet .form-head .sign .name { min-width: 70px; display: inline-block; text-align: center; }
+/* 원본 서식의 대각선 칸.
+   오른쪽 위에 출판사명·가격(오른쪽 정렬), 왼쪽 아래에 평가기준(왼쪽 정렬),
+   대각선은 왼쪽 위에서 오른쪽 아래로 내려긋는다.
+   (기울기 방향은 gradient 축과 수직이라, 내려긋는 선은 'to top right' 이다) */
 .form-sheet .diag { position: relative; }
-.form-sheet .diag .a { position: absolute; left: 6px; top: 3px; font-size: 9.5pt; }
-.form-sheet .diag .b { position: absolute; right: 6px; bottom: 3px; font-size: 9.5pt; }
-.form-sheet .diag::after { content: ''; position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: linear-gradient(to bottom right, transparent calc(50% - 0.5px), #000 50%, transparent calc(50% + 0.5px)); }
+.form-sheet .diag .a { position: absolute; right: 7px; top: 3px; font-size: 9.5pt; font-weight: 400; text-align: right; line-height: 1.3; white-space: nowrap; }
+.form-sheet .diag .b { position: absolute; left: 7px; bottom: 3px; font-size: 9.5pt; font-weight: 400; text-align: left; white-space: nowrap; }
+.form-sheet .diag::after { content: ''; position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: linear-gradient(to top right, transparent calc(50% - 0.5px), #000 50%, transparent calc(50% + 0.5px)); }
 /* 서식1 머리글 둘째 줄 — 출판사 가격 (원본 보기글이 '0,000원') */
 .form-sheet .price-row { font-size: 9pt; font-weight: 400; white-space: nowrap; }
 .sheet-wrap { overflow-x: auto; padding: 4px 4px 4px; }
