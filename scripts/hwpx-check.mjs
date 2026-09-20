@@ -291,7 +291,10 @@ for (const [label, blob, sectionCount, deep] of cases) {
       if (colCnt !== 6) fail(`서식1 은 출판사 3곳이면 6열이어야 하는데 ${colCnt}열`)
       if (rowCnt !== opinionRow + 1) fail(`서식1 은 평가기준 ${criteria.length}줄이면 ${opinionRow + 1}행이어야 하는데 ${rowCnt}행`)
       if (!at(opinionRow, 0)?.startsWith('<종합의견 및 추천의견>')) fail('서식1 종합의견 칸이 비었습니다')
-      if (!xml.includes('과  목 : 화법과 언어 과')) fail('서식1 과목·위원 줄이 채워지지 않았습니다')
+      // 과목명 뒤에 '과' 를 붙이지 않는다 (원본 서식에는 붙어 있었다)
+      if (!xml.includes('과  목 : 화법과 언어 ')) fail('서식1 과목 줄이 채워지지 않았습니다')
+      if (/화법과 언어\s+과\s/.test(xml)) fail("서식1 과목명 뒤에 '과' 가 붙어 있습니다")
+      if (!xml.includes('위  원 : 홍길동')) fail('서식1 위원 줄이 채워지지 않았습니다')
       pass('서식1 값 확인')
     }
     if (title === '【서식2】' && deep) {

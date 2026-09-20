@@ -151,9 +151,20 @@ export function parseForm1(rows: TextRow[]): ParsedForm1 | null {
   // 띄어쓰기를 살린 줄에서 먼저 찾는다 — 공백을 모두 지운 글자에서 찾으면 '화법과 언어' 가 '화법과언어' 로 붙어 버린다.
   // 원본 서식이 '과  목 :' 처럼 낱글자를 벌려 놓아 글자 사이 공백도 견디게 둔다.
   const textAll = rows.map((r) => r.text).join(' ')
-  const pick = (loose: RegExp, tight: RegExp) => normalize((textAll.match(loose) || [])[1] || '') || normalize((flatAll.match(tight) || [])[1] || '')
-  const subjectName = pick(/과\s*목\s*[:：]\s*(.+?)\s*과\s+위/, /과목\s*[:：]\s*(.+?)과(?:\s|위원|$)/)
-  const teacherName = pick(/위\s*원\s*[:：]\s*(.+?)\s*\(\s*인\s*\)/, /위원\s*[:：]\s*(.+?)\(인\)/)
+  const first = (res: RegExp[], hay: string) => {
+    for (const re of res) {
+      const m = hay.match(re)
+      if (m?.[1]) return normalize(m[1])
+    }
+    return ''
+  }
+  // 예전에 만든 평가표에는 과목명 뒤에 '과' 가 붙어 있다(' 확률과 통계 과   위 원 : …').
+  // 그 꼴을 먼저 보고 '과' 를 떼어 낸다. 지금 만드는 것에는 없으므로 다음 규칙이 걸린다.
+  // 띄어 쓴 ' 과 ' 만 표시로 보기 때문에, 과목명이 '과' 로 끝나도(' 과학과   위 원') 잘리지 않는다.
+  const subjectName =
+    first([/과\s*목\s*[:：]\s*(.+?)\s+과\s+위\s*원/, /과\s*목\s*[:：]\s*(.+?)\s+위\s*원/], textAll) ||
+    first([/과목\s*[:：]\s*(.+?)과위원/, /과목\s*[:：]\s*(.+?)위원/], flatAll)
+  const teacherName = first([/위\s*원\s*[:：]\s*(.+?)\s*\(\s*인\s*\)/], textAll) || first([/위원\s*[:：]\s*(.+?)\(인\)/], flatAll)
 
   const totalRowIdx = rows.findIndex((r) => r.flat.startsWith('합계'))
   if (totalRowIdx < 0) return null

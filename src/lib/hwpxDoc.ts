@@ -122,7 +122,8 @@ async function form1(d: Form1Data): Promise<string> {
   // 비어 있을 때 쓸데없이 높던 줄은 낮춘다 (글이 길어지면 한글이 알아서 늘린다)
   // 0행은 출판사명(길면 두 줄), 1행은 가격 한 줄, 맨 아래는 종합의견 칸
   xml = setRowHeights(xml, 0, { 0: 3200, 1: 2200, [sumRow]: 2600, [opinionRow]: 6200 })
-  xml = replaceParagraph(xml, '과  목', `                                 과  목 : ${d.subjectName} 과    위  원 : ${d.teacherName}       (인)`)
+  // 원본 서식에는 과목명 뒤에 '과' 가 붙어 있었지만('국어과' 처럼 쓰라는 뜻), 본교는 쓰지 않는다
+  xml = replaceParagraph(xml, '과  목', `                                 과  목 : ${d.subjectName}      위  원 : ${d.teacherName}       (인)`)
   return xml
 }
 
