@@ -427,7 +427,7 @@ export function Compile({ go }: { go: (h: string) => void }) {
                 addFiles(e.dataTransfer.files)
               }}
             >
-              <p>위원들이 보낸 평가표 <b>한글(.hwpx)</b> 이나 <b>PDF</b> 를 끌어다 놓거나</p>
+              <p>위원들이 보낸 평가표 한글 파일(.hwpx)을 끌어다 놓아주세요.</p>
               <label className="btn primary sm">
                 + 추가하기
                 <input type="file" accept=".hwpx,.hwp,application/pdf,.pdf" multiple style={{ display: 'none' }} onChange={(e) => addFiles(e.target.files)} />
