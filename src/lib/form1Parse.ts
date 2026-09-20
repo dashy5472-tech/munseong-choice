@@ -194,34 +194,53 @@ export function parseForm1(rows: TextRow[]): ParsedForm1 | null {
     if (r.flat.includes('선정평가표') || r.flat.includes('서식1')) break
     headerRows.unshift(r)
   }
-  /** 열에 걸린 칸만 남긴다 */
-  const atColumns = (r: TextRow) => r.cells.filter((c) => pubAnchors.some((a) => near(c, a)) && c.text)
-  /** 가격 줄: 열에 걸린 칸이 모두 '12,000원' 꼴 */
+  /**
+   * 칸 하나를 열에 나눠 담는다.
+   *
+   * 이웃한 출판사 이름이 칸 경계에서 거의 붙어 있으면 한 덩어리로 묶여 버린다
+   * ('동아출판㈜ ㈜와이비엠' 처럼). 그러면 덩어리의 가운데가 어느 열에도 닿지 않아
+   * 두 이름을 통째로 잃는다. 덩어리가 여러 열에 걸쳐 있으면 열 사이 한가운데를 잘라
+   * 글자를 나눠 준다 (글자가 고르게 놓였다고 본다).
+   */
+  const spread = (c: Cell): { col: number; text: string }[] => {
+    const over = pubAnchors.map((a, i) => ({ a, i })).filter(({ a }) => a >= c.x - tol / 2 && a <= c.endX + tol / 2)
+    if (over.length <= 1) {
+      const col = over.length === 1 ? over[0].i : pubAnchors.findIndex((a) => near(c, a))
+      return col >= 0 && c.text ? [{ col, text: c.text }] : []
+    }
+    const chars = [...c.text]
+    const step = (c.endX - c.x) / Math.max(1, chars.length)
+    const edges = over.slice(1).map(({ a }, k) => (over[k].a + a) / 2)
+    const parts = over.map(({ i }) => ({ col: i, text: '' }))
+    chars.forEach((ch, idx) => {
+      const x = c.x + (idx + 0.5) * step
+      let k = 0
+      while (k < edges.length && x > edges[k]) k++
+      parts[k].text += ch
+    })
+    return parts.map((p) => ({ col: p.col, text: p.text.trim() })).filter((p) => p.text)
+  }
+  /** 줄 하나를 열별로 나눈 것 */
+  const byColumn = (r: TextRow) => r.cells.flatMap(spread)
+  /** 가격 줄: 열에 담긴 것이 모두 '12,000원' 꼴 */
   const isPriceRow = (r: TextRow) => {
-    const hits = atColumns(r)
-    return hits.length > 0 && hits.every((c) => /^[\d,]+원?$/.test(flatten(c.text)))
+    const hits = byColumn(r)
+    return hits.length > 0 && hits.every((h) => /^[\d,]+원?$/.test(flatten(h.text)))
   }
   /** 예전 서식의 열 번호(1,2,3…) 줄 — 출판사명이 아니다 */
   const isIndexRow = (r: TextRow) => {
-    const hits = atColumns(r)
-    return hits.length === n && hits.every((c, k) => flatten(c.text) === String(k + 1))
+    const hits = byColumn(r)
+    return hits.length === n && hits.every((h, k) => flatten(h.text) === String(k + 1))
   }
   const priceRow = headerRows.find(isPriceRow)
   const publisherNames: string[] = pubAnchors.map(() => '')
   const publisherPrices: string[] = pubAnchors.map(() => '')
-  if (priceRow) {
-    for (const c of atColumns(priceRow)) {
-      const col = pubAnchors.findIndex((a) => near(c, a))
-      if (col >= 0) publisherPrices[col] = normalize(c.text)
-    }
-  }
+  if (priceRow) for (const h of byColumn(priceRow)) publisherPrices[h.col] = normalize(h.text)
   for (const row of headerRows) {
     if (row === priceRow || isIndexRow(row)) continue
-    for (const c of atColumns(row)) {
-      const col = pubAnchors.findIndex((a) => near(c, a))
-      if (col < 0) continue
-      publisherNames[col] = publisherNames[col] ? `${publisherNames[col]} ${c.text}` : c.text
-    }
+    // 이름이 칸 안에서 두 줄로 접히면 줄마다 따로 잡힌다. 한글은 낱말 가운데서도 접히므로
+    // 이을 때 공백을 넣지 않는다 (넣으면 '㈜ 천재교과서' 가 된다).
+    for (const h of byColumn(row)) publisherNames[h.col] += h.text
   }
   publisherNames.forEach((v, i) => {
     if (!v) {
