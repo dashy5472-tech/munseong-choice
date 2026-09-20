@@ -81,7 +81,36 @@ await savePersonalHwpx({
   recommend: [],
   updatedAt: new Date().toISOString(),
 })
-cases.push(['위원용 (서식1)', caught, 1])
+cases.push(['위원용 (서식1)', caught, 1, true])
+
+// 출판사가 많을 때 — 평가기준 칸이 좁아지면 글이 접히며 줄이 높아져 표가 두 쪽으로 넘어간다.
+// 실제로 6곳에서 이 일이 있었으므로 가장 빡빡한 9곳으로 재 둔다.
+const many = ['㈜천재교과서', '동아출판㈜', '㈜와이비엠', '㈜미래엔', '㈜비상교육', '㈜지학사', '㈜금성출판사', '㈜교학사', '㈜좋은책신사고'].map((name, i) => ({
+  id: `q${i}`,
+  name,
+  price: String(13000 + i * 200),
+}))
+const manyScores = {}
+many.forEach((p, c) => {
+  manyScores[p.id] = {}
+  criteria.forEach((cr, r) => (manyScores[p.id][cr.id] = Math.max(1, cr.points - ((c + r) % 6))))
+})
+await savePersonalHwpx({
+  id: 'e2',
+  subjectId: 's1',
+  subjectName: '확률과 통계',
+  teacherName: '김주영',
+  publishers: many,
+  criteria,
+  ranks: [many[0].id, many[1].id, many[2].id],
+  scores: manyScores,
+  summaryKeys: [],
+  summaryOpinion:
+    '㈜천재교과서의 확률과 통계 교과서는 전반적으로 내용의 수준이 학생 발달 단계에 적합하고, 본교 학생의 수준과 특성에 부합함. 또한 탐구활동이 다양하게 제시되어 있고, 전년 대비 가격 부담이 완화됨. 아울러 2022 개정 교육과정의 성취기준을 충실히 반영하고 있음. 종합적으로 1순위로 평가함.',
+  recommend: [],
+  updatedAt: new Date().toISOString(),
+})
+cases.push(['위원용 (서식1·출판사 9곳)', caught, 1, false])
 
 const members = [
   { id: 'm1', teacherName: '홍길동' },
@@ -104,7 +133,7 @@ await saveCompileHwpx({
   recommendWriter: { position: '교과협의회 대표교사', name: '김영희' },
   recommendChecker: { position: '교감', name: '박민수' },
 })
-cases.push(['총괄용 (서식2+3)', caught, 2])
+cases.push(['총괄용 (서식2+3)', caught, 2, true])
 
 // ───────── 3) 나온 파일 뜯어 보기 ─────────
 function unzip(buf) {
@@ -161,7 +190,7 @@ const fail = (msg) => {
 }
 const pass = (msg) => console.log(`  ✓ ${msg}`)
 
-for (const [label, blob, sectionCount] of cases) {
+for (const [label, blob, sectionCount, deep] of cases) {
   console.log(`\n── ${label} ──`)
   const buf = Buffer.from(await blob.arrayBuffer())
   const path = join(OUT, `${label.replace(/[^\w가-힣]+/g, '_')}.hwpx`)
@@ -239,7 +268,14 @@ for (const [label, blob, sectionCount] of cases) {
 
     const title = (xml.match(/<hp:t>【서식\d】<\/hp:t>/) || ['?'])[0].replace(/<[^>]+>/g, '')
     console.log(`  section${i} ${title} ${rowCnt}행 × ${colCnt}열`)
-    if (title === '【서식1】') {
+    if (title === '【서식1】' && !deep) {
+      // 출판사가 많은 경우 — 자리만 맞는지 본다. 쪽수는 scripts/hwpx-open.ps1 이 잰다
+      if (colCnt !== 12) fail(`서식1 은 출판사 9곳이면 12열이어야 하는데 ${colCnt}열`)
+      if (at(0, 11) !== '㈜좋은책신사고') fail(`서식1 마지막 출판사 = ${JSON.stringify(at(0, 11))}`)
+      if (at(1, 11) !== '14,600원') fail(`서식1 마지막 가격 = ${JSON.stringify(at(1, 11))}`)
+      pass('서식1(9곳) 자리 확인')
+    }
+    if (title === '【서식1】' && deep) {
       const sumRow = 2 + criteria.length // 합계 줄
       const opinionRow = sumRow + 1
       const checks = [
@@ -258,7 +294,7 @@ for (const [label, blob, sectionCount] of cases) {
       if (!xml.includes('과  목 : 화법과 언어 과')) fail('서식1 과목·위원 줄이 채워지지 않았습니다')
       pass('서식1 값 확인')
     }
-    if (title === '【서식2】') {
+    if (title === '【서식2】' && deep) {
       const checks = [
         [1, 2, '홍길동'], [1, 4, '이철수'],
         [2, 0, '㈜비상교육'], [2, 1, '13,800원'], [2, 2, '90'], [2, 5, '269'], [2, 6, '89.7'], [2, 7, '1순위'],
@@ -273,7 +309,7 @@ for (const [label, blob, sectionCount] of cases) {
       if (!xml.includes('성명 홍길동')) fail('서식2 작성자가 채워지지 않았습니다')
       pass('서식2 값 확인')
     }
-    if (title === '【서식3】') {
+    if (title === '【서식3】' && deep) {
       const checks = [[1, 0, '1'], [1, 1, '㈜비상교육'], [1, 2, '13,800원'], [3, 1, '동아출판㈜'], [3, 2, '13,500원']]
       for (const [r, c, want] of checks) {
         const got = at(r, c)
@@ -285,6 +321,10 @@ for (const [label, blob, sectionCount] of cases) {
     }
   }
 }
+
+// 한글로 열어 보는 검사(scripts/hwpx-open.ps1)가 견줄 기대 쪽수.
+// 서식1 은 한 쪽, 총괄용은 서식2·서식3 이 한 쪽씩이다.
+writeFileSync(join(OUT, 'expect.json'), JSON.stringify(Object.fromEntries(cases.map(([label, , n]) => [`${label.replace(/[^\w가-힣]+/g, '_')}.hwpx`, n])), null, 2), 'utf-8')
 
 URL.createObjectURL = realCreate
 rmSync(bundle, { force: true })

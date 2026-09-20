@@ -710,8 +710,11 @@ label.field.rank-row { flex-direction: row; align-items: center; gap: 10px; marg
      이름 붙인 페이지(@page landscape)로 방향을 섞으면 첫 장에 빈 세로 페이지가 끼는 브라우저가 있어
      단추로 인쇄할 때(html.printing)는 쓰지 않고, Ctrl+P 처럼 단추를 거치지 않은 인쇄에서만
      가로 서식이 세로 종이에 잘려 나오지 않도록 예비로 둔다 */
-  @page { size: A4 portrait; margin: 12mm; }
-  @page landscape { size: A4 landscape; margin: 10mm; }
+  /* 쪽 여백을 0 으로 두고 종이 여백은 서식 상자의 안쪽 여백으로 준다.
+     브라우저는 쪽 여백 자리에 날짜·주소·쪽번호를 찍는데, 그 자리가 없으면 찍지 못한다.
+     ('머리글 및 바닥글' 을 꺼 달라고 선생님들께 부탁하지 않아도 된다) */
+  @page { size: A4 portrait; margin: 0; }
+  @page landscape { size: A4 landscape; margin: 0; }
   html:not(.printing) .form-sheet.landscape { page: landscape; }
   /* 화면용 min-height:100vh 가 남아 있으면 서식 뒤에 빈 장이 한 쪽 더 나온다 */
   html, body { background: #fff !important; margin: 0; padding: 0; height: auto; min-height: 0 !important; }
@@ -732,9 +735,12 @@ label.field.rank-row { flex-direction: row; align-items: center; gap: 10px; marg
   /* 화면용 크기(210mm/297mm, min-height)를 모두 해제해 인쇄 영역에 맞춘다. 두 클래스 선택자로 우선순위를 맞춘다. */
   .form-sheet, .form-sheet.landscape {
     width: auto; min-height: 0; max-width: none;
-    border: none; box-shadow: none; margin: 0; padding: 0; border-radius: 0;
+    border: none; box-shadow: none; margin: 0; border-radius: 0;
     break-after: auto; page-break-after: auto;
   }
+  /* 쪽 여백(@page margin) 대신 여기서 종이 여백을 준다 — 위 @page 주석 참고 */
+  .form-sheet { padding: 12mm; }
+  .form-sheet.landscape { padding: 10mm; }
   /* 앞에 출력되는 서식이 있을 때만 새 페이지에서 시작 → 앞뒤 빈 페이지가 생기지 않는다 */
   .form-sheet:not(.print-skip) ~ .form-sheet:not(.print-skip) { break-before: page; page-break-before: always; }
   /* 첫 서식 앞에서는 절대 쪽을 넘기지 않는다 (맨 앞 빈 페이지 방지) */

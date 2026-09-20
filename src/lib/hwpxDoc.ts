@@ -92,17 +92,20 @@ async function form1(d: Form1Data): Promise<string> {
   xml = dropColumns(xml, 0, spare, [1])
 
   // 열 너비를 본문 너비에 맞춰 새로 놓는다.
-  // 평가영역은 '학습내용 선정' 이 두 줄 안에 들어가게 22mm, 평가기준은 60mm 이상,
-  // 점수 칸은 남는 너비를 고르게(최대 45mm) — 출판사가 적을수록 점수 칸이 넓어지는 화면·PDF 와 같은 모양
+  //
+  // 평가기준 칸을 넉넉히(95mm) 두는 것이 핵심이다. 이 칸이 좁으면 기준 문장이 서너 줄로 접히고,
+  // 그만큼 줄이 높아져 표가 두 쪽으로 넘어간다 (가로 A4 한 쪽에 쓸 수 있는 높이는 180mm뿐이다).
+  // 점수 칸은 남는 너비를 고르게 나눠 갖되, 출판사가 많으면 13mm 까지 좁아지고
+  // 적으면 30mm 에서 멈춘다 — 더 넓혀 봐야 숫자 한 자리라 빈 칸만 커진다.
   const N = Math.max(pubs.length, 1)
   const area = mm(22)
   const pts = mm(16.6)
   const rest = TEXT_W.landscape - area - pts
-  const pubW = Math.max(mm(9), Math.min(mm(45), Math.floor((rest - mm(60)) / N)))
+  const pubW = Math.max(mm(13), Math.min(mm(30), Math.floor((rest - mm(95)) / N)))
   xml = layoutColumns(xml, 0, [area, rest - pubW * N, pts, ...Array.from({ length: N }, () => pubW)])
   // 비어 있을 때 쓸데없이 높던 줄은 낮춘다 (글이 길어지면 한글이 알아서 늘린다)
-  // 0행은 출판사명(길면 두 줄), 1행은 가격 한 줄
-  xml = setRowHeights(xml, 0, { 0: 3200, 1: 2200, [sumRow]: 2600, [opinionRow]: 8500 })
+  // 0행은 출판사명(길면 두 줄), 1행은 가격 한 줄, 맨 아래는 종합의견 칸
+  xml = setRowHeights(xml, 0, { 0: 3200, 1: 2200, [sumRow]: 2600, [opinionRow]: 6200 })
   xml = replaceParagraph(xml, '과  목', `                                 과  목 : ${d.subjectName} 과    위  원 : ${d.teacherName}       (인)`)
   return xml
 }

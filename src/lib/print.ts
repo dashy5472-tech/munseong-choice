@@ -27,7 +27,9 @@ function printOne(selector?: string, title?: string): Promise<void> {
     const landscape = targets.some((el) => el.classList.contains('landscape'))
     const pageStyle = document.createElement('style')
     pageStyle.id = 'print-page-size'
-    pageStyle.textContent = `@page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: ${landscape ? '10mm' : '12mm'}; }`
+    // 여백은 0 으로 둔다. 종이 여백은 서식 상자의 안쪽 여백이 맡는다 (src/styles.css @media print).
+    // 쪽 여백이 없으면 브라우저가 날짜·주소·쪽번호를 찍을 자리도 없어진다.
+    pageStyle.textContent = `@page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 0; }`
     document.head.appendChild(pageStyle)
     document.documentElement.classList.add('printing')
 

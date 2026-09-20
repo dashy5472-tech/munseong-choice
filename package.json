@@ -10,6 +10,7 @@
     "forms": "node scripts/hwpx-parts.mjs",
     "check:hwpx": "node scripts/hwpx-check.mjs",
     "check:open": "powershell -ExecutionPolicy Bypass -File scripts/hwpx-open.ps1",
+    "check:print": "node scripts/print-check.mjs",
     "shots": "node scripts/guide-shots.mjs"
   },
   "dependencies": {
