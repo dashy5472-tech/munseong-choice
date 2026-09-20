@@ -1,6 +1,6 @@
 import type { Criterion, DocPublisher, Evaluation, RecommendItem, SummaryMember } from '../types'
 import { uid } from '../seed'
-import { buildRows, flatten, looksLikeForm1, looksLikeForm3, parseForm1, parseForm3, parseForm3Writer, type ParsedForm1, type TextItem } from './form1Parse'
+import { buildRows, flatten, looksLikeForm1, looksLikeForm3, parseForm1, parseForm3, parseForm3Writer, type ParsedForm1, type TextItem, type TextRow } from './form1Parse'
 
 export interface ImportProgress {
   file: string
@@ -144,6 +144,24 @@ async function ocrPage(page: import('pdfjs-dist').PDFPageProxy, onProgress: (rat
  * · 그 뒤에 나오는 추천 의견서는 바로 앞 위원의 것으로 붙인다.
  * · 빈 페이지나 읽히지 않는 페이지는 건너뛴다 (앞에 빈 장이 끼어 있어도 나머지는 읽는다).
  */
+/**
+ * 이 쪽이 왜 선정 평가표로 읽히지 않았는지 한 마디로 말해 준다.
+ * 올린 파일이 안 읽힐 때 무엇을 고쳐야 할지 바로 알 수 있게 하려는 것이다.
+ */
+function whyNotForm1(rows: TextRow[]): string {
+  if (!rows.length) return '글자가 없습니다'
+  if (!looksLikeForm1(rows)) {
+    if (looksLikeForm3(rows)) return '추천 의견서입니다 (평가표가 아닙니다)'
+    if (rows.some((r) => r.flat.includes('총괄표'))) return '평가 총괄표입니다 (평가표가 아닙니다)'
+    return `'검정(인정)도서 선정 평가표' 라는 제목이 없습니다`
+  }
+  const total = rows.find((r) => r.flat.startsWith('합계'))
+  if (!total) return `표의 '합  계' 줄을 찾지 못했습니다`
+  const nums = total.cells.filter((c) => /^-?\d+(\.\d+)?$/.test(flatten(c.text)))
+  if (nums.length < 2) return `'합  계' 줄에서 숫자를 ${nums.length}개밖에 읽지 못했습니다 (배점 합과 출판사별 총점이 있어야 합니다)`
+  return '표를 해석하지 못했습니다'
+}
+
 type Recommend = { rank: number; publisherName: string; text: string }
 type Orphan = { teacherName: string; recommends: Recommend[] }
 
@@ -157,6 +175,8 @@ async function readPdf(file: File, onProgress: (p: ImportProgress) => void): Pro
   /** 앞에 평가표가 없는 추천 의견서 — 이름이 같은 위원에게 나중에 붙인다 */
   const orphans: Orphan[] = []
   const skipped: number[] = []
+  /** 평가표로 읽히지 않은 쪽마다 그 까닭 (하나도 못 읽었을 때 선생님께 보여 준다) */
+  const reasons: string[] = []
 
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i)
@@ -184,6 +204,7 @@ async function readPdf(file: File, onProgress: (p: ImportProgress) => void): Pro
     }
     const rows = buildRows(items)
     const one = looksLikeForm1(rows) ? parseForm1(rows) : null
+    if (!one) reasons.push(`${i}쪽: ${whyNotForm1(rows)}`)
     if (one) found.push({ parsed: one, recommends: [], ocr: usedOcr })
     else if (looksLikeForm3(rows)) {
       const recs = parseForm3(rows)
@@ -197,8 +218,14 @@ async function readPdf(file: File, onProgress: (p: ImportProgress) => void): Pro
 
   if (!found.length) {
     if (orphans.length) return { members: [], orphans }
-    const why = skipped.length === doc.numPages ? '글자를 읽지 못했습니다.' : '선정 평가표를 찾지 못했습니다.'
-    return { error: `${why} 위원이 [평가표 인쇄·PDF]로 만든 파일인지 확인해 주세요.` }
+    if (skipped.length === doc.numPages) {
+      return { error: '글자를 읽지 못했습니다. 그림으로만 된 파일이라면 더 또렷하게 스캔해 주세요.' }
+    }
+    // 어디서 걸렸는지 그대로 알려 준다 — '못 읽었습니다' 만으로는 무엇을 고쳐야 할지 알 수 없다
+    const detail = reasons.slice(0, 3).join(' / ')
+    return {
+      error: `선정 평가표를 찾지 못했습니다${detail ? ` — ${detail}` : ''}. 위원 화면의 [인쇄 · PDF 저장] 으로 만든 평가표 PDF 인지 확인해 주세요.`,
+    }
   }
 
   const base = file.name.replace(/\.pdf$/i, '')
