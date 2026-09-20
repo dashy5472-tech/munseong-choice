@@ -43,8 +43,11 @@ function splitRows(tbl: string): string[] {
   return tbl.match(/<hp:tr>[\s\S]*?<\/hp:tr>/g) || []
 }
 
-/** 칸 하나의 글자를 바꾼다. 줄바꿈은 문단을 나눈다 */
-function setCellText(tc: string, text: string): string {
+/**
+ * 칸 하나의 글자를 바꾼다. 줄바꿈은 문단을 나눈다.
+ * @param paraPr 줄마다 다른 문단 모양(정렬 등)을 줄 때. 없는 줄은 원래 칸의 첫 문단 모양을 쓴다
+ */
+function setCellText(tc: string, text: string, paraPr?: (number | undefined)[]): string {
   const m = /(<hp:subList\b[^>]*>)([\s\S]*?)(<\/hp:subList>)/.exec(tc)
   if (!m) return tc
   const inner = m[2]
@@ -53,7 +56,11 @@ function setCellText(tc: string, text: string): string {
   // 줄 나눔 캐시(linesegarray)는 넣지 않는다 — 남아 있으면 한글이 '한 줄로 쓰기'처럼 그린다
   const body = String(text ?? '')
     .split('\n')
-    .map((line) => `${pOpen}<hp:run charPrIDRef="${charPr}">${line ? `<hp:t>${esc(line)}</hp:t>` : ''}</hp:run></hp:p>`)
+    .map((line, i) => {
+      const ref = paraPr?.[i]
+      const open = ref === undefined ? pOpen : pOpen.replace(/paraPrIDRef="\d+"/, `paraPrIDRef="${ref}"`)
+      return `${open}<hp:run charPrIDRef="${charPr}">${line ? `<hp:t>${esc(line)}</hp:t>` : ''}</hp:run></hp:p>`
+    })
     .join('')
   return tc.slice(0, m.index) + m[1] + body + m[3] + tc.slice(m.index + m[0].length)
 }
@@ -62,18 +69,21 @@ export interface CellFill {
   row: number
   col: number
   text: string
+  /** 줄마다 문단 모양(정렬 등)을 달리 줄 때 쓰는 paraPr 번호 목록 */
+  paraPr?: (number | undefined)[]
 }
 
 /** 표의 칸들을 한 번에 채운다 (자리는 원본의 행·열 번호 그대로) */
 export function fillTable(xml: string, tableIndex: number, fills: CellFill[]): string {
   const [a, b] = tableRange(xml, tableIndex)
   let tbl = xml.slice(a, b)
-  const want = new Map(fills.map((f) => [`${f.row},${f.col}`, f.text]))
+  const want = new Map(fills.map((f) => [`${f.row},${f.col}`, f]))
   tbl = tbl.replace(/<hp:tc\b[\s\S]*?<\/hp:tc>/g, (tc) => {
     const addr = /<hp:cellAddr colAddr="(\d+)" rowAddr="(\d+)"\/>/.exec(tc)
     if (!addr) return tc
     const key = `${addr[2]},${addr[1]}`
-    return want.has(key) ? setCellText(tc, want.get(key) as string) : tc
+    const f = want.get(key)
+    return f ? setCellText(tc, f.text, f.paraPr) : tc
   })
   return xml.slice(0, a) + tbl + xml.slice(b)
 }

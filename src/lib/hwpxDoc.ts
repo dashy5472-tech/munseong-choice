@@ -29,6 +29,12 @@ const TEXT_W = { landscape: mm(297 - 30 - 1.5), portrait: mm(210 - 30 - 1.5) }
 
 const sign = (title: string, who: Person) => `  ${title}           직 ${who.position || ''}        성명 ${who.name || ''}          (인)`
 
+/**
+ * 오른쪽 정렬 문단 모양의 번호 (public/forms/header.xml 의 paraPr 16 — horizontal="RIGHT").
+ * 원본 서식1 대각선 칸의 빈 줄이 이미 쓰고 있는 번호라 글꼴·줄 간격이 그 칸과 어울린다.
+ */
+const PARA_RIGHT = 16
+
 /** 가격 칸 글자. 숫자만 들어오면 천 단위로 끊고 '원' 을 붙인다 (원본 보기글이 '0,000원') */
 export function priceText(price?: string): string {
   const raw = String(price ?? '').trim()
@@ -61,6 +67,16 @@ async function form1(d: Form1Data): Promise<string> {
   const opinionRow = sumRow + 1 // 종합의견 줄
 
   const fills: CellFill[] = []
+  // 대각선 칸(출판사명 ╲ 평가기준).
+  // 원본은 이 글자들을 왼쪽 정렬(JUSTIFY)에 앞 공백으로 밀어 오른쪽에 세워 두었다.
+  // 아래에서 평가기준 열을 95mm 로 넓히므로 공백만으로는 글자가 가운데쯤에 서 버린다.
+  // 그래서 위 세 줄은 오른쪽 정렬(PARA_RIGHT)로 세우고 앞 공백을 뺀다. 평가기준은 원본대로 왼쪽.
+  fills.push({
+    row: 0,
+    col: 1,
+    text: '출 판 사 명\n-----------\n(가격)\n\n 평 가 기 준',
+    paraPr: [PARA_RIGHT, PARA_RIGHT, PARA_RIGHT, PARA_RIGHT, undefined],
+  })
   // 0행 출판사명 · 1행 가격 (쓰지 않는 칸은 비운다 — 열 자체는 아래에서 없앤다)
   for (let i = 0; i < LIMITS.publishers; i++) {
     fills.push({ row: 0, col: COL0 + i, text: i < pubs.length ? pubs[i].name : '' })

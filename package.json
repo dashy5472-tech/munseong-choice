@@ -11,6 +11,7 @@
     "check:hwpx": "node scripts/hwpx-check.mjs",
     "check:open": "powershell -ExecutionPolicy Bypass -File scripts/hwpx-open.ps1",
     "check:print": "node scripts/print-check.mjs",
+    "shot:hwpx": "powershell -ExecutionPolicy Bypass -File scripts/hwpx-shot.ps1",
     "shots": "node scripts/guide-shots.mjs"
   },
   "dependencies": {
